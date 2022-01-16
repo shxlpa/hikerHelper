@@ -18,6 +18,12 @@ Adafruit_Si7021 sensor = Adafruit_Si7021();
 // Soil setup
 #include "Adafruit_seesaw.h"
 Adafruit_seesaw ss;
+// USound setup
+#include <HCSR04.h>
+const byte triggerPin = 6;
+const byte echoPin = 5;
+UltraSonicDistanceSensor distanceSensor(triggerPin, echoPin);
+float uSoundDist;
 // Sensor related global function declarations
 void sensorSetup();
 void sensorLoop(); // sensor funcs run temp/humid and soil sensor loops
@@ -25,15 +31,14 @@ void tempHumidSetup();
 void tempHumidLoop();
 void soilSetup();
 void soilLoop();
+void uSoundSetup();
+void uSoundLoop();
 // Fire risk variables & calculation
 bool tempRisk = 0; // from tempHumid
 bool humRisk = 0; // from tempHumid 
 bool capRisk = 0; // from soil moisture sensor
+bool brushRisk = 0; // reads the height, density of the brush in from the ultrasonic sensor
 bool fireRisk();
-
-char message[20] = "HELLO";
-char received_message[20] = "GOODBYE";
-bool inbox = false;
 
 void setup() {
   sensorSetup();
@@ -43,25 +48,37 @@ void loop() {
   sensorLoop();
 }
 
-// ••••••••••••••••
-// SENSORS!
-// ••••••••••••••••
+// ALL SENSOR SPECIFIC FUNCTIONS DECLARED BELOW:
 void sensorSetup() {
   Serial.begin(115200); // AVA: You can remove this if you set the baud rate elsewhere.
   tempHumidSetup();
   soilSetup();
+  uSoundSetup();
 }
 
 void sensorLoop() {
   tempHumidLoop();
   soilLoop();
+  uSoundLoop();
 }
 
+// ULTRASONIC SENSOR SETUP
+void uSoundSetup() {
+  // nothing..
+}
+
+void uSoundLoop() {
+   uSoundDist = distanceSensor.measureDistanceCm();
+   if (uSoundDist < 30) { // If we detect groundcover near by, we count that as a brush fire risk.
+    brushRisk = 1;
+   }
+}
+
+
+// TEMPERATURE & HUMIDITY SENSOR
 void tempHumidSetup() {
   if (!sensor.begin()) {
-    if (DEBUG) {
-      Serial.println("Did not find Si7021 sensor!");
-    }
+    Serial.println("Did not find Si7021 sensor!");
     while (true)
       ;
   }
@@ -93,9 +110,7 @@ void tempHumidLoop() {
 // SOIL SENSOR
 void soilSetup() {
   if (!ss.begin(0x36)) {
-    if (DEBUG) {
-      Serial.println("ERROR! seesaw not found");
-    }
+    Serial.println("ERROR! seesaw not found");
     while(1) delay(1);
   } 
 }
@@ -111,7 +126,7 @@ void soilLoop() {
 }
 
 bool fireRisk(bool tempRisk, bool humRisk, bool capRisk) {
-  if (tempRisk == 1 && humRisk == 1 && capRisk == 1) {
+  if (tempRisk == 1 && humRisk == 1 && capRisk == 1 && brushRisk == 1) {
     return 1;
   } else {
     return 0;
