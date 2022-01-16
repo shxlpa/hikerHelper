@@ -9,8 +9,10 @@ Adafruit_Si7021 sensor = Adafruit_Si7021();
 Adafruit_seesaw ss;
 // USound setup
 #include <HCSR04.h>
-HCSR04 hc(5, 6);
-int uSoundDist;
+const byte triggerPin = 6;
+const byte echoPin = 5;
+UltraSonicDistanceSensor distanceSensor(triggerPin, echoPin);
+float uSoundDist;
 // Sensor related global function declarations
 void sensorSetup();
 void sensorLoop(); // sensor funcs run temp/humid and soil sensor loops
@@ -57,8 +59,8 @@ void uSoundSetup() {
 }
 
 void uSoundLoop() {
-   uSoundDist = hc.dist();
-   if (uSoundDist < 30) {
+   uSoundDist = distanceSensor.measureDistanceCm();
+   if (uSoundDist < 30) { // If we detect groundcover near by, we count that as a brush fire risk.
     brushRisk = 1;
    }
 }
@@ -115,7 +117,7 @@ void soilLoop() {
 }
 
 bool fireRisk(bool tempRisk, bool humRisk, bool capRisk) {
-  if (tempRisk == 1 && humRisk == 1 && capRisk == 1 && brushRisk) {
+  if (tempRisk == 1 && humRisk == 1 && capRisk == 1 && brushRisk == 1) {
     return 1;
   } else {
     return 0;
