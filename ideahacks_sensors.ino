@@ -9,6 +9,8 @@ Adafruit_Si7021 sensor = Adafruit_Si7021();
 Adafruit_seesaw ss;
 // USound setup
 #include <HCSR04.h>
+HCSR04 hc(5, 6);
+int uSoundDist;
 // Sensor related global function declarations
 void sensorSetup();
 void sensorLoop(); // sensor funcs run temp/humid and soil sensor loops
@@ -49,13 +51,16 @@ void sensorLoop() {
   uSoundLoop();
 }
 
-// Ultrasonic sensor setup
+// ULTRASONIC SENSOR SETUP
 void uSoundSetup() {
-  HCSR04 hc(5, 6); // Not sure if can go here; in ex. this is before setup
+  // nothing..
 }
 
 void uSoundLoop() {
-  // c.dist()
+   uSoundDist = hc.dist();
+   if (uSoundDist < 30) {
+    brushRisk = 1;
+   }
 }
 
 
@@ -110,7 +115,7 @@ void soilLoop() {
 }
 
 bool fireRisk(bool tempRisk, bool humRisk, bool capRisk) {
-  if (tempRisk == 1 && humRisk == 1 && capRisk == 1) {
+  if (tempRisk == 1 && humRisk == 1 && capRisk == 1 && brushRisk) {
     return 1;
   } else {
     return 0;
